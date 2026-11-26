@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dynamic Island — батарея</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700&display=swap">
+<style>
+:root{--bg:#07070d;--ink:#f4f3ff;--mut:#8e8fb4;--font:"Unbounded","Segoe UI",system-ui,sans-serif}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);overflow:hidden;-webkit-tap-highlight-color:transparent}
+
+/* Dynamic Island: 126 x 37, на 11 от верхнего края, по центру (как у iPhone 17) */
+#island{position:fixed;z-index:50;top:11px;left:50%;width:126px;height:37px;border-radius:18.5px;transform:translateX(-50%);
+  background:#000;overflow:hidden;transition:width .55s cubic-bezier(.3,1.35,.5,1),height .55s cubic-bezier(.3,1.35,.5,1),border-radius .55s cubic-bezier(.3,1.35,.5,1)}
+#island::before{content:"";position:absolute;left:50%;top:50%;width:600px;height:600px;margin:-300px;opacity:0;transition:opacity .4s;
+  background:conic-gradient(var(--g,#fff,#fff));animation:spin 2.2s linear infinite}
+#island::after{content:"";position:absolute;inset:0;background:#000;border-radius:inherit;transition:inset .4s}
+#island.on::before{opacity:1}
+#island.on::after{inset:2.5px}
+#iBody{position:relative;z-index:2;height:100%;opacity:0;transition:opacity .2s}
+#island.open #iBody{opacity:1;transition:opacity .3s .2s}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+#aura{position:fixed;left:0;right:0;top:0;height:60vh;pointer-events:none;opacity:0;transition:opacity .8s;
+  background:radial-gradient(ellipse 70% 100% at 50% 0,var(--a,#3dff9a) 0,transparent 70%);filter:blur(20px)}
+#aura.on{opacity:.55;animation:hue 5s linear infinite}
+@keyframes hue{to{filter:blur(20px) hue-rotate(360deg)}}
+
+#app{position:fixed;inset:0;display:flex;flex-direction:column;padding:max(84px,calc(env(safe-area-inset-top) + 24px)) 18px max(18px,env(safe-area-inset-bottom))}
+.stage{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;position:relative}
+.bw{position:relative;height:min(40vh,300px);aspect-ratio:.56;margin-top:14px}
+.bw::before{content:"";position:absolute;left:34%;right:34%;top:-12px;height:12px;border-radius:6px 6px 0 0;background:rgba(255,255,255,.28)}
+.batt{position:absolute;inset:0;border:5px solid rgba(255,255,255,.28);border-radius:14% / 8%;overflow:hidden;background:#12131f}
+.fill{position:absolute;left:0;right:0;bottom:0;height:var(--p,60%);transition:height .15s linear;background:linear-gradient(180deg,#9dffcb,#1fcf84)}
+.fill.low{background:linear-gradient(180deg,#ff9a8a,#ff3d4d)}
+.fill::after{content:"";position:absolute;inset:0;opacity:0;background:repeating-linear-gradient(0deg,transparent 0 16px,rgba(255,255,255,.28) 16px 32px);animation:up 1s linear infinite}
+.chg .fill{animation:hue2 4s linear infinite}
+.chg .fill::after{opacity:1}
+@keyframes up{to{background-position:0 -32px}}
+@keyframes hue2{to{filter:hue-rotate(360deg)}}
+.pct{position:absolute;inset:0;display:grid;place-items:center;font-weight:700;font-size:clamp(30px,6vh,46px);text-shadow:0 2px 14px rgba(0,0,0,.5);z-index:2}
+.st{font-size:14px;color:var(--mut);font-weight:400;height:20px}
+.spark{position:absolute;bottom:20%;width:7px;height:7px;border-radius:50%;pointer-events:none;animation:rise 1.4s ease-out forwards}
+@keyframes rise{to{transform:translateY(-190px) scale(.2);opacity:0}}
+
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.b{position:relative;height:100px;border:0;border-radius:26px;color:#fff;font:600 14px var(--font);cursor:pointer;overflow:hidden;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;outline-offset:3px}
+.b small{font:400 11px system-ui,sans-serif;opacity:.78}
+.b svg{width:30px;height:30px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.b:active{transform:scale(.97)}
+.bb{background:linear-gradient(135deg,#12b886,#7be0ff)}
+.bc{background:linear-gradient(135deg,#ff5f8f,#ff9a4d)}
+.bt{background:linear-gradient(135deg,#ff9a1f,#ff5a3d)}
+.bm{background:linear-gradient(135deg,#6a4bff,#d046ff)}
+
+/* у каждой кнопки своя анимация */
+.bb.go svg{animation:zap .9s}
+.bb.go::after{content:"";position:absolute;inset:0;background:#fff;animation:flash .7s forwards}
+@keyframes zap{0%{transform:scale(1)}15%{transform:scale(1.7) rotate(-14deg)}30%{transform:scale(.8) rotate(10deg)}45%{transform:scale(1.4) rotate(-6deg)}100%{transform:scale(1)}}
+@keyframes flash{0%{opacity:.8}100%{opacity:0}}
+.bc.go svg{animation:ring .9s;transform-origin:50% 50%}
+@keyframes ring{0%,100%{transform:rotate(0)}10%{transform:rotate(-28deg)}20%{transform:rotate(28deg)}30%{transform:rotate(-24deg)}40%{transform:rotate(24deg)}50%{transform:rotate(-16deg)}60%{transform:rotate(14deg)}80%{transform:rotate(-6deg)}}
+.bt.go svg{animation:spin 1s cubic-bezier(.5,0,.2,1)}
+.bt.go{animation:pulse .8s}
+@keyframes pulse{50%{box-shadow:0 0 0 14px rgba(255,150,40,0) inset,0 0 30px rgba(255,120,40,.7)}}
+.bm .eq{display:flex;gap:4px;align-items:flex-end;height:30px}
+.eq i{display:block;width:5px;height:6px;border-radius:3px;background:#fff}
+.bm.go .eq i{animation:bar .5s ease-in-out infinite alternate}
+.eq i:nth-child(2){animation-delay:.12s!important}.eq i:nth-child(3){animation-delay:.25s!important}.eq i:nth-child(4){animation-delay:.07s!important}.eq i:nth-child(5){animation-delay:.2s!important}
+@keyframes bar{to{height:30px}}
+
+/* содержимое острова */
+.row{height:100%;display:flex;align-items:center;gap:12px;padding:0 18px;color:#fff}
+.row b{font:600 13px var(--font)}.row small{font:11px system-ui,sans-serif;color:#aaa}
+.col{flex:1;display:flex;flex-direction:column;gap:5px;min-width:0}
+.ic{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;flex:none}
+.ic svg{width:20px;height:20px;stroke:#fff;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.bar{display:block;height:6px;border-radius:3px;background:#333;overflow:hidden}
+.bar u{display:block;height:100%;width:var(--p,60%);border-radius:3px;background:linear-gradient(90deg,#3dff9a,#ffe14d,#ff5fd0,#5be3ff);background-size:200% 100%;animation:flow 1.2s linear infinite}
+@keyframes flow{to{background-position:200% 0}}
+.bolt{background:linear-gradient(135deg,#1fcf84,#5be3ff);animation:beat 1s ease-in-out infinite}
+@keyframes beat{50%{transform:scale(1.18);box-shadow:0 0 16px #3dff9a}}
+.av{background:linear-gradient(135deg,#ff5f8f,#ffb020);font:700 15px var(--font);color:#fff}
+.cbtn{width:34px;height:34px;border-radius:50%;flex:none}
+.tm{justify-content:center;gap:10px;font:600 15px var(--font);color:#ff9a1f}
+.dot{width:10px;height:10px;border-radius:50%;background:#ff9a1f;animation:beat 1s infinite}
+.cover{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#6a4bff,#ff5fd0);flex:none}
+.row .eq{height:24px}.row .eq i{animation:bar .5s ease-in-out infinite alternate;background:#d046ff;width:4px}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01s!important}}
+</style>
+</head>
+<body>
+<div id="aura"></div>
+<div id="island"><div id="iBody"></div></div>
+
+<main id="app">
+  <section class="stage" id="stage">
+    <div class="bw"><div class="batt"><div class="fill" id="fill"></div></div><div class="pct" id="pct">62%</div></div>
+    <div class="st" id="st">Не заряжается</div>
+  </section>
+  <div class="grid">
+    <button class="b bb" id="bBat"><svg viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>Батарея<small>начать зарядку</small></button>
+    <button class="b bc" id="bCall"><svg viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2z"/></svg>Звонок<small>входящий</small></button>
+    <button class="b bt" id="bTim"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/></svg>Таймер<small>10 секунд</small></button>
+    <button class="b bm" id="bMus"><div class="eq"><i></i><i></i><i></i><i></i><i></i></div>Музыка<small>сейчас играет</small></button>
+  </div>
+</main>
+
+<script>
+(function(){
+  var $=function(s){return document.querySelector(s)};
+  var isl=$('#island'),body=$('#iBody'),aura=$('#aura'),stage=$('#stage');
+  var pct=62,charging=false,chT,hideT,timT,sparkT;
+  var bolt='<svg viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>';
+
+  function show(w,h,html,grad,auraC){
+    clearTimeout(hideT);
+    isl.style.width=w+'px';isl.style.height=h+'px';isl.style.borderRadius=(h>50?30:h/2)+'px';
+    isl.style.setProperty('--g',grad);body.innerHTML=html;
+    isl.classList.add('on','open');
+    if(auraC){aura.style.setProperty('--a',auraC);aura.classList.add('on')}
+  }
+  function hide(keepAura){
+    clearTimeout(hideT);clearInterval(timT);
+    isl.classList.remove('on','open');
+    isl.style.width='126px';isl.style.height='37px';isl.style.borderRadius='18.5px';
+    if(!keepAura||!charging)aura.classList.remove('on');
+  }
+  function after(ms,keep){clearTimeout(hideT);hideT=setTimeout(function(){hide(keep)},ms)}
+  function replay(el){el.classList.remove('go');void el.offsetWidth;el.classList.add('go')}
+  function setBatt(){
+    $('#fill').style.setProperty('--p',pct+'%');$('#fill').classList.toggle('low',pct<=20);
+    $('#pct').textContent=Math.round(pct)+'%';
+    var b=$('#iBar'),p=$('#iPct');
+    if(b)b.parentNode.style.setProperty('--p',pct+'%');if(p)p.textContent=Math.round(pct)+'%';
+  }
+  function spark(){
+    var s=document.createElement('span'),c=['#3dff9a','#ffe14d','#ff5fd0','#5be3ff'];
+    s.className='spark';s.style.left=(40+Math.random()*20)+'%';s.style.background=c[Math.floor(Math.random()*4)];
+    s.style.boxShadow='0 0 10px '+s.style.background;stage.appendChild(s);setTimeout(function(){s.remove()},1400);
+  }
+  function stopCharge(){charging=false;clearInterval(chT);clearInterval(sparkT);$('.bw').classList.remove('chg');
+    $('#st').textContent='Не заряжается';$('#bBat small').textContent='начать зарядку'}
+  function startCharge(){
+    if(pct>=100)pct=20;setBatt();charging=true;
+    $('.bw').classList.add('chg');$('#st').textContent='Заряжается';$('#bBat small').textContent='отключить';
+    show(330,78,'<div class="row"><div class="ic bolt">'+bolt+'</div><div class="col"><b>Зарядка</b><i class="bar"><u id="iBar"></u></i></div><b id="iPct" style="font-size:18px">'+Math.round(pct)+'%</b></div>',
+      '#3dff9a,#5be3ff,#a06bff,#ff5fd0,#ffe14d,#3dff9a','#3dff9a');
+    setBatt();after(3600,true);
+    chT=setInterval(function(){pct=Math.min(100,pct+1);setBatt();
+      if(pct>=100){stopCharge();show(240,50,'<div class="row"><div class="ic bolt">'+bolt+'</div><b>Заряжено 100%</b></div>','#3dff9a,#9dffcb,#3dff9a','#3dff9a');after(2200)}},140);
+    sparkT=setInterval(spark,160);
+  }
+
+  $('#bBat').onclick=function(){replay(this);charging?(stopCharge(),hide()):(clearInterval(timT),startCharge())};
+  $('#bCall').onclick=function(){replay(this);clearInterval(timT);
+    show(350,78,'<div class="row"><div class="ic av">М</div><div class="col"><b>Мама</b><small>входящий звонок</small></div><div class="cbtn" style="background:#ff3b30"></div><div class="cbtn" style="background:#34c759"></div></div>',
+      '#34c759,#34c759,#000,#34c759','#34c759');after(4200,true)};
+  $('#bTim').onclick=function(){replay(this);clearInterval(timT);var n=10;
+    show(190,37,'<div class="row tm"><span class="dot"></span><span id="tt">0:10</span></div>','#ff9a1f,#ffe14d,#ff5a3d,#ff9a1f','#ff9a1f');
+    timT=setInterval(function(){n--;var t=$('#tt');if(t)t.textContent='0:'+String(Math.max(n,0)).padStart(2,'0');
+      if(n<=0){clearInterval(timT);var t2=$('#tt');if(t2)t2.textContent='Готово';after(1400,true)}},1000)};
+  $('#bMus').onclick=function(){var b=this;replay(b);clearInterval(timT);
+    show(310,66,'<div class="row"><div class="cover"></div><div class="col"><b>Midnight Drive</b><small>Neon Waves</small></div><div class="eq"><i></i><i></i><i></i><i></i></div></div>',
+      '#6a4bff,#d046ff,#ff5fd0,#6a4bff','#b046ff');after(5000,true)};
+  setBatt();
+})();
+</script>
+</body>
+</html>
